@@ -1,4 +1,4 @@
-#categorise, remove withdrawn and subset
+#categorise, withdrawn removed 
 
 
 #read data----------------------------------------------
@@ -33,7 +33,7 @@ dataframe<-readRDS("/rds/general/project/hda_students_data/live/Group1/data/merg
       
   }
 
-#test with i=61,which the code =87, you can see the problem with chapter V
+#test with i=61,with the coding id =87, you can see the problem with chapter V
 i=87
 coding_id=data_cat[sub("\\..*", "", colnames(dataframe)[i]),2]
 mycoding=read.csv("Codings_Showcase.csv")
