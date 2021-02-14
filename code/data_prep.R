@@ -28,7 +28,7 @@
 # as illustrated in the folder "example_extraction".
 # Loading the data
 library(data.table)
-mydata=data.frame(fread("ukb26390.csv", nrows=5))
+mydata=data.frame(fread("data/ukb26390.csv", nrows=5))
 myfields=unname(unlist(read.table("extract.txt", header=FALSE)))
 
 ## Extracting the column ids 
@@ -43,8 +43,8 @@ for (k in 1:length(myfields)){
 }
 
 # Extracting required columns from dataset
-extracted=data.frame(fread("/rds/general/project/hda_students_data/live/Group1/ukb26390.csv", select=column_id)) # Path to change!
-saveRDS(extracted, "individual_covariates.rds")
+extracted=data.frame(fread("/rds/general/project/hda_students_data/live/Group1/data/ukb26390.csv", select=column_id)) # Path to change!
+saveRDS(extracted, "data/individual_covariates_new_var.rds")
 
 extracted<-individual_covariates
 
