@@ -17,7 +17,7 @@ saveRDS(disease_outcome_withdrawn,"data/disease_outcome_no_withdrawn.rds")
 #101 rows removed
 
 #merge disease
-merge_disease<-merge(disease_outcome_withdrawn,merged_no_withdraw,by="eid")
+merge_disease<-merge(disease_outcome_no_withdrawn,merged_no_withdraw,by="eid")
 
 #subset data-------------------------------------------------------
 
