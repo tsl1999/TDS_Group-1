@@ -18,10 +18,18 @@ na_true<-function(x){
 }
 
 table1<-apply(dataframe,MARGIN = 2,na_true)
-dataframe=subset_cat
+dataframe=subset00
 dataframe=dataframe[,sub("^[^ ]*", "", colnames(dataframe))==" 0.0"|colnames(dataframe)=="0.0"]
 colnames(subset_cat)<-paste("X",data_cat$Field.ID,sep="")
 sub("^[^ ]*", "", colnames(dataframe)[8])
 dataframe=dataframe[,gsub('*.([0-9]+)*','\\1',colnames(dataframe))=='00']
+dataframe=cbind(subset_cat[,1:7],dataframe)
+saveRDS(dataframe,'~/Desktop/TDS_Group-1/subset00.rds')
 
-saveRDS(dataframe,'Desktop/TDS_Group-1/data/subset00.rds')
+column_name<-c()
+for (i in 1:100){
+  column_name[i]=gsub("[^a-zA-Z]", " ", colnames(dataframe)[i])
+}
+
+colnames(dataframe)=column_name
+saveRDS(dataframe,'~/Desktop/TDS_Group-1/subset_no00.rds')
