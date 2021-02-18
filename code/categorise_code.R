@@ -45,13 +45,4 @@ for (i in 1:540){
 
 colnames(dataframe)[7:540]<-column_name[7:540]
 
-
-#test with i=61,with the coding id =87, you can see the problem with chapter V
-i=87
-coding_id=data_cat[sub("\\..*", "", colnames(dataframe)[i]),2]
-mycoding=read.csv("Codings_Showcase.csv")
-mycoding_field=mycoding[which(mycoding[,1]==coding_id),]
-mycoding_field=mycoding_field[,-1]
-rownames(mycoding_field)=mycoding_field$Value
-dataframe[,i]<-as.character(mycoding_field[as.character(dataframe[,i]),"Meaning"])
-
+saveRDS(dataframe,"data/cate_merge_disease(final).rds")
