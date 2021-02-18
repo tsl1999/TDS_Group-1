@@ -6,7 +6,7 @@ path="/rds/general/project/hda_students_data/live/Group1"
 setwd(path)
 
 data_dictonary <- read_excel("data_dictonary.xlsx")
-data_cat<-data.frame(data_dictonary[,c("Field ID","code ID")])
+data_cat<-data.frame(data_dictionary[,c("Field ID","code ID")])
 disease_outcomes <- readRDS("/rds/general/project/hda_students_data/live/Group1/disease_outcomes.rds")
 
 #categorise-----------------------------------------------------
@@ -16,7 +16,7 @@ mycoding=data.frame(read.csv("Codings_Showcase.csv"))
 
 
 #categorise function--------------------------------------
-dataframe<-readRDS("/rds/general/project/hda_students_data/live/Group1/data/merged_no_withdraw.rds")
+dataframe<-merge_disease
 
   for(i in 1: length(colnames(dataframe))){
       if (is.na(data_cat[sub("\\..*", "", colnames(dataframe)[i]),2])==F) 
@@ -32,6 +32,19 @@ dataframe<-readRDS("/rds/general/project/hda_students_data/live/Group1/data/merg
       }
       
   }
+data_cat<-data.frame(data_dictionary[,c("Field ID","code ID","name")])
+data_cat$Field.ID<-paste("X",data_cat$Field.ID,sep="")
+rownames(data_cat)<-data_cat$Field.ID
+
+
+column_name<-c()
+for (i in 1:540){
+  column_name[i]=paste(data_cat[sub("\\..*", "", colnames(dataframe)[i]),3],
+                       sub("^[^.]*.", "", colnames(dataframe)[i]))
+}
+
+colnames(dataframe)[7:540]<-column_name[7:540]
+
 
 #test with i=61,with the coding id =87, you can see the problem with chapter V
 i=87
