@@ -24,4 +24,4 @@ merge_disease<-merge(disease_outcome_no_withdrawn,merged_no_withdraw,by="eid")
 saveRDS(merge_disease,"/rds/general/project/hda_students_data/live/Group1/merged_disease.rds")
 
 subset<-dataframe[1:1000,]
-saveRDS(subset,"TDS_Group-1/subset_cat.rds")
+saveRDS(subset,"TDS_Group-1/subset_new.rds")

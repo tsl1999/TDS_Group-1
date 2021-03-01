@@ -1,9 +1,9 @@
 library(tidyverse)
-library(table1)
 library(readxl)
+library(missForest)
 
-
-dataframe <- readRDS("subset_cat_00.rds")
+setwd("/rds/general/project/hda_students_data/live/Group1")
+dataframe <- readRDS("/rds/general/project/hda_students_data/live/Group1/data/merged_only00.rds")
 colnames(dataframe) <- trimws(colnames(dataframe))
 
 
@@ -33,7 +33,7 @@ for (var in TypesCat){
 
 
 
-library(missForest)
+
 dataframe.imp <- missForest(xmis = dataframe[c(IntakesCat,IntakesNum)],xtrue = dataframe[c(IntakesCat,IntakesNum)], ntree = 100, variablewise = T)
 
 for (var in c(IntakesCat,IntakesNum)){
@@ -98,7 +98,10 @@ data["NutritionScore"] <- (data[["Score Vegetable_Intake" ]]*10 + data[["Score F
 + (1-data[["Score Bread_Intake"]])*10 + (1-data[["Score ProcessedMeat_Intake"]])*10 + (1-data[["Score SaltAdded" ]])*10)
 
 hist(data$NutritionScore)
+dev.copy(device = png,"results/nutrition_hist.png")
+dev.off()
 summary(data$NutritionScore)
+
 
 model <- glm(LungCancer ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking + NutritionScore, data = data , family = 'binomial')
 summary(model)

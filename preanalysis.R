@@ -1,12 +1,10 @@
 library(tidyverse)
-library(table1)
 library(readxl)
-library(pheatmap)
 
 
 
-setwd("~/Desktop/TDS_Group-1")
-dataframe <- readRDS("subset_cat_00.rds")
+setwd("/rds/general/project/hda_students_data/live/Group1")
+dataframe <- readRDS("/rds/general/project/hda_students_data/live/Group1/data/merged_only00.rds")
 colnames(dataframe) <- trimws(colnames(dataframe))
 
 
@@ -54,7 +52,8 @@ data["Smoking"] <- dataframe[["smoking status"]]
 
 data["Vegetable_Intake"] <- dataframe[["cooked vegetable in take"]] + dataframe[["salad raw vege intake"]]
 data["Fruit_Intake"] <- dataframe[["dried fruit intake"]] + dataframe[["fresh fruit intake"]]
-data["Fish_Intake"] <- dataframe[["oily fish intake"]] + dataframe[["non oily fish intake"]]
+data["Oily_Fish_Intake"] <- dataframe[["oily fish intake"]] 
+data["non_oily_Fish_Intake"]<-dataframe[["non oily fish intake"]]
 data["RedMeat_Intake"] <- dataframe[["beef intake"]] + dataframe[["pork intake"]] + dataframe[["lamb mutton intake"]] 
 data["ProcessedMeat_Intake"] <- dataframe[["processed meat intake per day"]]
 data["WhiteMeat_Intake"]<- dataframe[["poultry intake"]]
@@ -84,7 +83,7 @@ data$LungCancer <- as.factor(data$LungCancer)
 # Data characteristic plots
 
 #Numeric variables
-data.numeric <- na.omit(data[,7:33]) %>%
+data.numeric <- na.omit(data[,7:34]) %>%
   as_data_frame() %>%
   select_if(is.numeric) %>%
   gather(key = "variable", value = "value")
@@ -92,7 +91,7 @@ data.numeric <- na.omit(data[,7:33]) %>%
 ggplot(data.numeric, aes(value)) +
   geom_density() +
   facet_wrap(~variable,scales = "free")
-dev.copy(device=pdf,'results/numeric_density.pdf')
+dev.copy(device=png,'results/numeric_density.png')
 dev.off()
 
 #Categorical variables
@@ -102,7 +101,7 @@ data.factor<- data[Names] %>%
 
 lapply(colnames(data.factor), function(var){barplot(table(data.factor[var]),main =var,las=2 )
   a=paste0("results/",var)
-  dev.copy(device=pdf, paste0(a,'.pdf'))
+  dev.copy(device=png, paste0(a,'.png'))
    dev.off()})
 
 
@@ -120,10 +119,11 @@ pval=lapply(Names,
 pval=data.frame((pval))
 pval=data.frame(t(pval))
 rownames(pval)=Names
-a<-plot(-log(pval$pval),xaxt="n",xlab='',pch=16,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05/20,'black','pink'),ylim =c(0,-log(0.05/20)+1))
-a+axis(1,labels=rownames(pval),at=c(1:20),las=2)
-abline(h=-log(0.05/20))
-dev.copy(device=pdf,'results/univariate_manhattenplot.pdf')
+saveRDS(pval,"results/pval.rds")
+a<-plot(-log(pval$pval),xaxt="n",xlab='',pch=16,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05/21,'black','pink'),ylim =c(0,-log(0.05/20)+30))
+a+axis(1,labels=rownames(pval),at=c(1:21),las=2)
+abline(h=-log(0.05/21))
+dev.copy(device=png,'results/univariate_manhattenplot.png')
 dev.off()
 
 
@@ -139,16 +139,7 @@ formula    <- as.formula(paste("LungCancer ~ Smoking +", paste(Names, collapse="
 res.logist <- glm(formula, data = data, family = binomial)
 print(summary(res.logist))
 
-#Create Table 1
-my.render.cont <- function(x) {
-  with(stats.apply.rounding(stats.default(x), digits=3), c("",
-                                                           "Mean (SD)"=sprintf("%s (&plusmn; %s)", MEAN, SD)))}
-my.render.cat <- function(x) {
-  c("", sapply(stats.default(x), function(y) with(y,
-                                                  sprintf("%d (%0.0f %%)", FREQ, PCT))))}
-table1(as.formula(paste("~ Smoking + ", paste(colnames(data)[7:33], collapse=" + "),paste("|LungCancer"))), data=data, overall="Total",
-       caption = 'Table 1. Patient Participant Demographic and Clinical Characteristics',
-       render.continuous=my.render.cont, render.categorical=my.render.cat)
+
 
 
 #Correlation Matrix
@@ -157,7 +148,4 @@ a<-data[Names] %>%select_if(is.numeric)
 a=data.frame(a)
 a=drop_na(a)
 mycor = cor(a,method = 'spearman')
-pheatmap(mycor, cluster_rows = FALSE, cluster_cols = FALSE, border = NA,
-         breaks = seq(-1, 1, length.out = 100))
-dev.copy(png,'results/correlation_map.png')
-dev.off()
+saveRDS(mycor,"results/corr.rds")
