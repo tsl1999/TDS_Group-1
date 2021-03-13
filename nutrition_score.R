@@ -3,7 +3,7 @@ library(readxl)
 library(missForest)
 
 setwd("/rds/general/project/hda_students_data/live/Group1")
-dataframe <- readRDS("/rds/general/project/hda_students_data/live/Group1/data/merged_only00.rds")
+dataframe <- readRDS("data/merged_new_00.rds")
 colnames(dataframe) <- trimws(colnames(dataframe))
 
 
@@ -33,19 +33,31 @@ for (var in TypesCat){
 
 
 
+dataframe.imp <- missForest(xmis = dataframe[c(IntakesCat,IntakesNum)],xtrue = dataframe[c(IntakesCat,IntakesNum)], ntree = 20, variablewise = T)
 
-dataframe.imp <- missForest(xmis = dataframe[c(IntakesCat,IntakesNum)],xtrue = dataframe[c(IntakesCat,IntakesNum)], ntree = 100, variablewise = T)
+
 
 for (var in c(IntakesCat,IntakesNum)){
   dataframe[[var]] <- ifelse(is.na(dataframe[[var]]),
                              dataframe.imp$ximp[[var]],
                              dataframe[[var]])}
+
+
 #dataframe <- dataframe[complete.cases(dataframe[IntakesNum]),]
 #dataframe <- dataframe[complete.cases(dataframe[IntakesCat]),]
 
 
-data <- dataframe[,c(1:6)]
+data <- dataframe[,c(1:7)]
 colnames(data) <- gsub(" ", "", colnames(data), fixed = TRUE)
+
+data["SysBP"] <- dataframe[["systolic blood pressure"]]
+data["BMI"] <- dataframe[["BMI"]]
+data["Glucose"] <- dataframe[["glucose"]]
+data["Cholesterol"] <- dataframe[["cholestorl"]]
+data["HDL_Cholesterol"] <- dataframe[["HDL cholestorl"]]
+data["LDL_Direct"] <- dataframe[["LDL direct"]]
+data["Triglycerides"] <- dataframe[["Triglycerides"]]
+data["Vitamin_D"] <- dataframe[["Vitamin D"]]
 
 
 data["age_of_recruitement"] <- dataframe[["age of recruitement"]]
@@ -77,31 +89,118 @@ data["Coffee_Type"] <- dataframe[["coffee type"]]
 data["SaltAdded"] <- dataframe[["salt added to food"]]
 data["DietVariation"] <- dataframe[["variation in diet"]]
 
-Names <- colnames(data[,13:ncol(data)])
-
-
-colnames(data)
-
+Names <- colnames(data[,22:ncol(data)])
+data
+#Define Scores for numerical variable
 for (var in Names[1:13]){data[paste("Score",var)] <- ecdf(data[[var]])(data[[var]])}
 
-data["Score SaltAdded" ] <- as.numeric(ifelse(data["SaltAdded"] == 'Never/rarely', "0.2",
-ifelse(data["SaltAdded"] == 'Sometimes',"0.6",
-       ifelse(data["SaltAdded"] == 'Usually',"0.8",
-              ifelse(data["SaltAdded"] == 'Always',"1",
-                     ifelse(data["SaltAdded"] == 'Prefer not to answer',"0.5",NA))))))
-  
- 
-data["NutritionScore"]
+#Define Scores for categorical variable
+data["Score SaltAdded" ] <- as.numeric(ifelse(data["SaltAdded"] == 'Never/rarely', "0.8",
+                                              ifelse(data["SaltAdded"] == 'Sometimes',"0.4",
+                                                     ifelse(data["SaltAdded"] == 'Usually',"0.2",
+                                                            ifelse(data["SaltAdded"] == 'Always',"0",
+                                                                   ifelse(data["SaltAdded"] == 'Prefer not to answer',"0.5",NA))))))
+data["Score BreadType"]  <- as.numeric(ifelse(is.na(data[["Bread_Type" ]]),0.5,ifelse(data[["Bread_Type" ]]=="White",0,1)))
+data["Score SpreadType"]  <- as.numeric(ifelse(is.na(data[["Spread_Type" ]]),0.5,ifelse(data[["Spread_Type"]]=="Butter/spreadable butter",0,1)))
+
+#Define Nutrition Score by aggregating relevant scores
 data["NutritionScore"] <- (data[["Score Vegetable_Intake" ]]*10 + data[["Score Fruit_Intake" ]]*10 + (1-data[["Score Cereal_Intake"]])*5 
-+ data[["Score Cheese_Intake"]]*5 + (1-data[["Score RedMeat_Intake"]])*5 + data[["Score WhiteMeat_Intake"]]*5 + data[["Score NonOilyFish_Intake"]]*5
-+ (1-data[["Score OilyFish_Intake"]])*5 + (1-data[["Score Coffee_Intake"]])*5 + (1-data[["Score Tea_Intake"]])*5 
-+ (1-data[["Score Bread_Intake"]])*10 + (1-data[["Score ProcessedMeat_Intake"]])*10 + (1-data[["Score SaltAdded" ]])*10)
+                           + data[["Score Cheese_Intake"]]*5 + (1-data[["Score RedMeat_Intake"]])*10 + data[["Score WhiteMeat_Intake"]]*5 + data[["Score NonOilyFish_Intake"]]*5
+                           + (1-data[["Score OilyFish_Intake"]])*5 + (1-data[["Score Coffee_Intake"]])*5 + (1-data[["Score Tea_Intake"]])*5 
+                           + (1-data[["Score Bread_Intake"]])*5 + data[["Score BreadType"]]*5 + (1-data[["Score ProcessedMeat_Intake"]])*10 + data[["Score SaltAdded" ]]*10 
+                           + data[["Score SpreadType"]]*5)
+
+
+#Nutrition Score distribution and characteristics
+
+mu=c("no"=mean(data$NutritionScore[data$LungCancer=='no'],'yes':mean(data$NutritionScore[data$LungCancer=='yes'])))
+
+mu=data.frame(c('no','yes'),c(mean(data$NutritionScore[data$LungCancer=='no'],na.rm=T),mean(data$NutritionScore[data$LungCancer=='yes'],na.rm=T)))
+colnames(mu)<-c('LungCancer',"grp.mean")
+data$LungCancer<-ifelse(data$LungCancer=='1','yes','no')
+
+
+ggplot(data=data,aes(x=NutritionScore))+geom_density(aes(col=LungCancer,fill=LungCancer),alpha=0.6)+
+  geom_vline(data=mu, aes(xintercept=grp.mean, color=LungCancer),linetype="dashed")+
+  labs(title="nutrition score histgram for Lung cancer type",x="Nutrition score", y = "Density")+theme_bw()
+
+dev.copy(device=png,"results/hist_nutrition_score_type.png")
+dev.off()
+
+
+
 
 hist(data$NutritionScore)
-dev.copy(device = png,"results/nutrition_hist.png")
-dev.off()
 summary(data$NutritionScore)
+dev.copy(device=png,"results/hist_nutrition_score.png")
+dev.off()
+data$LungCancer
+
+#Logistic regression with Cancers and Car accidents
+Cancers <- colnames(data[c(2:7)])
+pval=lapply(Cancers,
+            function(var) {
+              formula1    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency"))
+              res.logist1 <- glm(formula1, data = data, family = 'binomial')
+              formula2    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + NutritionScore"))
+              res.logist2 <- glm(formula2, data = data, family = 'binomial')
+              pval=c(anova(res.logist1,res.logist2,test="Chisq")$'Pr(>Chi)'[2])
+              names(pval)='pval'
+              return(pval)})
+
+pval_adjusted=lapply(Cancers,
+                     function(var) {
+                       formula3    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking"))
+                       res.logist3 <- glm(formula3, data = data, family = 'binomial')
+                       formula4    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking + NutritionScore"))
+                       res.logist4 <- glm(formula4, data = data, family = 'binomial')
+                       pval_adjusted=c(anova(res.logist3,res.logist4,test="Chisq")$'Pr(>Chi)'[2])
+                       names(pval_adjusted)='pval_adjusted'
+                       return(pval_adjusted)})
+
+pval <- data.frame(t(data.frame((pval))))
+pval_adjusted <- data.frame(t(data.frame((pval_adjusted))))
+plot(-log(pval$pval),xaxt="n",xlab='',pch = 16,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05,'black','pink'),cex=1.2)
+points(-log(pval_adjusted$pval_adjusted),xaxt="n",xlab='',pch = 17,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05,'black','pink'),cex=1.2)
+abline(h=-log(0.05))
+axis(1,labels=Cancers,at=c(1:6),las=2)
+legend("topleft", legend=c("Not Adjusted For Smoking", "Adjusted For Smoking"),
+       col="black", pch = 16:17, cex=1.2)
+
+dev.copy(device=png,"results/pval_nutrition.png")
+dev.off()
 
 
-model <- glm(LungCancer ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking + NutritionScore, data = data , family = 'binomial')
-summary(model)
+#Linear regression with Biomarkers
+Biomarkers <- colnames(data[c(8:15)])
+pval=lapply(Biomarkers,
+            function(var) {
+              formula1    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency"))
+              res.logist1 <- lm(formula1, data = data)
+              formula2    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + NutritionScore"))
+              res.logist2 <- lm(formula2, data = data)
+              pval=c(anova(res.logist1,res.logist2,test="Chisq")$'Pr(>Chi)'[2])
+              names(pval)='pval'
+              return(pval)})
+
+pval_adjusted=lapply(Biomarkers,
+                     function(var) {
+                       formula3    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking"))
+                       res.logist3 <- lm(formula3, data = data)
+                       formula4    <- as.formula(paste(var, " ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking + NutritionScore"))
+                       res.logist4 <- lm(formula4, data = data)
+                       pval_adjusted=c(anova(res.logist3,res.logist4,test="Chisq")$'Pr(>Chi)'[2])
+                       names(pval_adjusted)='pval_adjusted'
+                       return(pval_adjusted)})
+
+pval <- data.frame(t(data.frame((pval))))
+pval_adjusted <- data.frame(t(data.frame((pval_adjusted))))
+plot(-log(pval$pval),xaxt="n",xlab='',pch = 16,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05,'black','pink'),cex=1.2)
+points(-log(pval_adjusted$pval_adjusted),xaxt="n",xlab='',pch = 17,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05,'black','pink'),cex=1.2)
+abline(h=-log(0.05))
++axis(1,labels=Biomarkers,at=c(1:8),las=2)
+legend("topleft", legend=c("Not Adjusted For Smoking", "Adjusted For Smoking"),
+       col="black", pch = 16:17, cex=1.2)
+dev.copy(device=png,"results/pval_biomarker.png")
+dev.off()
+

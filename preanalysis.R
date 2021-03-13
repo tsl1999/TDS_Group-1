@@ -4,7 +4,7 @@ library(readxl)
 
 
 setwd("/rds/general/project/hda_students_data/live/Group1")
-dataframe <- readRDS("/rds/general/project/hda_students_data/live/Group1/data/merged_only00.rds")
+dataframe <- readRDS('data/merged_new_00.rds')
 colnames(dataframe) <- trimws(colnames(dataframe))
 
 
@@ -30,9 +30,6 @@ for (var in IntakesCat){
                                                                   ifelse(dataframe[var] == 'Once or more daily',"7", NA)))))))}
 for (var in TypesCat){
   dataframe[var] <- as.factor(dataframe[[var]])}
-
-
-
 
 
 #dataframe <- dataframe[complete.cases(dataframe[IntakesNum]),]
@@ -71,6 +68,7 @@ data["Cereal_Type"] <- dataframe[["cereal type"]]
 data["Coffee_Type"] <- dataframe[["coffee type"]]
 data["SaltAdded"] <- dataframe[["salt added to food"]]
 data["DietVariation"] <- dataframe[["variation in diet"]]
+data['sugar']<-dataframe[['total sugar']]
 
 
 
@@ -83,16 +81,27 @@ data$LungCancer <- as.factor(data$LungCancer)
 # Data characteristic plots
 
 #Numeric variables
-data.numeric <- na.omit(data[,7:34]) %>%
+data.numeric <- na.omit(data[,c(7:34)]) %>%
   as_data_frame() %>%
   select_if(is.numeric) %>%
   gather(key = "variable", value = "value")
+
 
 ggplot(data.numeric, aes(value)) +
   geom_density() +
   facet_wrap(~variable,scales = "free")
 dev.copy(device=png,'results/numeric_density.png')
+
 dev.off()
+
+ggplot(data, aes(x=sugar)) +
+  geom_density() 
+dev.copy(device=png,'results/sugar.png')
+
+dev.off()
+
+
+
 
 #Categorical variables
 
@@ -102,28 +111,30 @@ data.factor<- data[Names] %>%
 lapply(colnames(data.factor), function(var){barplot(table(data.factor[var]),main =var,las=2 )
   a=paste0("results/",var)
   dev.copy(device=png, paste0(a,'.png'))
-   dev.off()})
+  dev.off()})
 
 
 
 # Univariate Regressions without smoking
 pval=lapply(Names,
             function(var) {
-              res.logist1 <- glm(LungCancer ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency+BMI + Smoking, data = (data %>% drop_na(var)), family = 'binomial')
+              res.logist1 <- glm(LungCancer ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency+BMI + Smoking, data = (data %>% drop_na(var)), family = binomial)
               formula2    <- as.formula(paste("LungCancer ~ age_of_recruitement + ethnic_background + sex + qualification + alcohol_intake_frequency + Smoking +BMI+", var))
-              res.logist2 <- glm(formula2, data = data, family = 'binomial')
+              res.logist2 <- glm(formula2, data = data, family = binomial)
               pval=c(anova(res.logist1,res.logist2,test="Chisq")$'Pr(>Chi)'[2])
               names(pval)='pval'
               return(pval)})
+
 
 pval=data.frame((pval))
 pval=data.frame(t(pval))
 rownames(pval)=Names
 saveRDS(pval,"results/pval.rds")
-a<-plot(-log(pval$pval),xaxt="n",xlab='',pch=16,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05/21,'black','pink'),ylim =c(0,-log(0.05/20)+30))
-a+axis(1,labels=rownames(pval),at=c(1:21),las=2)
-abline(h=-log(0.05/21))
+a<-plot(-log10(pval$pval),xaxt="n",xlab='',pch=16,ylab = '-ln(pvalue)',col=ifelse(pval$pval<=0.05/22,'black','pink'),ylim =c(0,-log(0.05/20)+30))
+a+axis(1,labels=rownames(pval),at=c(1:22),las=2)
+abline(h=-log10(0.05/22))
 dev.copy(device=png,'results/univariate_manhattenplot.png')
+
 dev.off()
 
 
@@ -144,7 +155,7 @@ print(summary(res.logist))
 
 #Correlation Matrix
 par(mar = c(5.1, 4.1, 4.1, 2.1))
-a<-data[Names] %>%select_if(is.numeric)
+a<-data[Names[]] %>%select_if(is.numeric)
 a=data.frame(a)
 a=drop_na(a)
 mycor = cor(a,method = 'spearman')
